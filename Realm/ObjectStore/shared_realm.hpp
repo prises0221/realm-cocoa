@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -100,6 +101,7 @@ namespace realm {
         bool compact();
 
         std::thread::id thread_id() const { return m_thread_id; }
+        bool check_thread() const noexcept;
         void verify_thread() const;
 
         ~Realm();

@@ -496,6 +496,11 @@ static void CheckReadWrite(RLMRealm *realm, NSString *msg=@"Cannot write to a re
               "transaction and all pending changes have been rolled back.");
     }
 
+    for (RLMFastEnumerator *enumerator in _collectionEnumerators) {
+        [enumerator detach];
+    }
+    _collectionEnumerators = nil;
+
     for (RLMObjectSchema *objectSchema in _schema.objectSchema) {
         for (RLMObservationInfo *info : objectSchema->_observedObjects) {
             info->willChange(RLMInvalidatedKey);
