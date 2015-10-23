@@ -86,16 +86,14 @@ void ExternalCommitHelper::FdHolder::close()
 // signal the runloop source and wake up the target runloop, and when data is
 // written to the anonymous pipe the background thread removes the runloop
 // source from the runloop and and shuts down.
-ExternalCommitHelper::ExternalCommitHelper(Realm* realm)
+ExternalCommitHelper::ExternalCommitHelper(std::string path)
 {
-    add_realm(realm);
-
     m_kq = kqueue();
     if (m_kq == -1) {
         throw std::system_error(errno, std::system_category());
     }
 
-    auto path = realm->config().path + ".note";
+    path += ".note";
 
     // Create and open the named pipe
     int ret = mkfifo(path.c_str(), 0600);

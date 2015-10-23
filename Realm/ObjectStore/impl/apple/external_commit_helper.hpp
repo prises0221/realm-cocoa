@@ -29,7 +29,7 @@ class Realm;
 namespace _impl {
 class ExternalCommitHelper {
 public:
-    ExternalCommitHelper(Realm* realm);
+    ExternalCommitHelper(std::string path);
     ~ExternalCommitHelper();
 
     void notify_others();
