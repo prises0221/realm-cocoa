@@ -18,6 +18,8 @@
 
 #include "results.hpp"
 
+#include "realm_coordinator.hpp"
+
 #include <stdexcept>
 
 using namespace realm;
@@ -50,11 +52,23 @@ Results::Results(SharedRealm r, Table& table)
 {
 }
 
+Results::Results(SharedRealm r, Query q, SortOrder s, TableView tv)
+: m_realm(std::move(r))
+, m_query(std::move(q))
+, m_table(&tv.get_parent())
+, m_table_view(std::move(tv))
+, m_sort(std::move(s))
+, m_mode(Mode::TableView)
+{
+}
+
 void Results::validate_read() const
 {
     if (m_realm && !m_realm->check_thread())
         throw Error::IncorrectThread;
     if (m_table && !m_table->is_attached())
+        throw Error::Invalidated;
+    if (m_mode == Mode::TableView && !m_table_view.is_attached())
         throw Error::Invalidated;
 }
 
@@ -111,7 +125,7 @@ util::Optional<RowExpr> Results::first()
             update_tableview();
             REALM_FALLTHROUGH;
         case Mode::TableView:
-            return m_table->size() == 0 ? util::none : util::Optional<RowExpr>(m_table_view.front());
+            return m_table_view.size() == 0 ? util::none : util::Optional<RowExpr>(m_table_view.front());
     }
     REALM_UNREACHABLE();
 }
@@ -128,7 +142,7 @@ util::Optional<RowExpr> Results::last()
             update_tableview();
             REALM_FALLTHROUGH;
         case Mode::TableView:
-            return m_table->size() == 0 ? util::none : util::Optional<RowExpr>(m_table_view.back());
+            return m_table_view.size() == 0 ? util::none : util::Optional<RowExpr>(m_table_view.back());
     }
     REALM_UNREACHABLE();
 }
@@ -302,4 +316,36 @@ Results Results::sort(realm::SortOrder&& sort) const
 Results Results::filter(Query&& q) const
 {
     return Results(m_realm, get_query().and_query(q), get_sort());
+}
+
+AsyncQueryCancelationToken Results::asyncify(Dispatcher dispatcher, std::function<void (Results)> fn)
+{
+    return _impl::RealmCoordinator::register_query(*this, dispatcher, std::move(fn));
+}
+
+AsyncQueryCancelationToken Results::asyncify(std::function<void (Results)> fn)
+{
+    return _impl::RealmCoordinator::register_query(*this, nullptr, std::move(fn));
+}
+
+AsyncQueryCancelationToken::~AsyncQueryCancelationToken()
+{
+    if (m_registration) {
+        _impl::RealmCoordinator::unregister_query(*m_registration);
+    }
+}
+
+AsyncQueryCancelationToken::AsyncQueryCancelationToken(AsyncQueryCancelationToken&& rgt)
+: m_registration(rgt.m_registration)
+{
+    rgt.m_registration = nullptr;
+}
+
+AsyncQueryCancelationToken& AsyncQueryCancelationToken::operator=(realm::AsyncQueryCancelationToken&& rgt)
+{
+    if (this != &rgt) {
+        m_registration = rgt.m_registration;
+        rgt.m_registration = nullptr;
+    }
+    return *this;
 }

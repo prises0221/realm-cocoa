@@ -29,6 +29,28 @@ namespace realm {
 template<typename T> class BasicRowExpr;
 using RowExpr = BasicRowExpr<Table>;
 class Mixed;
+struct Query_Handover_patch;
+
+namespace _impl {
+    class AsyncQuery;
+}
+
+using Dispatcher = std::function<void (std::function<void()>)>;
+
+struct AsyncQueryCancelationToken {
+    AsyncQueryCancelationToken() = default;
+    AsyncQueryCancelationToken(_impl::AsyncQuery* registration) : m_registration(registration) { }
+    ~AsyncQueryCancelationToken();
+
+    AsyncQueryCancelationToken(AsyncQueryCancelationToken&&);
+    AsyncQueryCancelationToken& operator=(AsyncQueryCancelationToken&&);
+
+    AsyncQueryCancelationToken(AsyncQueryCancelationToken const&) = delete;
+    AsyncQueryCancelationToken& operator=(AsyncQueryCancelationToken const&) = delete;
+
+private:
+    _impl::AsyncQuery* m_registration = nullptr;
+};
 
 struct SortOrder {
     std::vector<size_t> columnIndices;
@@ -46,6 +68,7 @@ public:
     // or a wrapper around a query and a sort order which creates and updates
     // the tableview as needed
     Results() = default;
+    Results(SharedRealm r, Query q, SortOrder s, TableView tv);
     Results(SharedRealm r, Table& table);
     Results(SharedRealm r, Query q, SortOrder s = {});
 
@@ -131,6 +154,13 @@ public:
         UnsupportedColumnType
     };
 
+    Realm& get_realm() const { return *m_realm; }
+
+    void update_tableview();
+
+    AsyncQueryCancelationToken asyncify(std::function<void (Results)> fn);
+    AsyncQueryCancelationToken asyncify(Dispatcher dispatcher, std::function<void (Results)> fn);
+
 private:
     SharedRealm m_realm;
     Query m_query;
@@ -142,8 +172,6 @@ private:
 
     void validate_read() const;
     void validate_write() const;
-
-    void update_tableview();
 
     template<typename Int, typename Float, typename Double, typename DateTime>
     util::Optional<Mixed> aggregate(size_t column, bool return_none_for_empty,

@@ -370,7 +370,7 @@ static void RLMRealmSetSchemaAndAlign(RLMRealm *realm, RLMSchema *targetSchema) 
 
     if (!readOnly) {
         // initializing the schema started a read transaction, so end it
-        [realm invalidate];
+//        [realm invalidate];
         realm->_realm->m_delegate = RLMCreateRealmDelegate(realm);
     }
 

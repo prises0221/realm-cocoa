@@ -24,6 +24,10 @@ RLM_ASSUME_NONNULL_BEGIN
 
 @class RLMObject, RLMRealm;
 
+@interface RLMCancellationToken : NSObject
+- (void)cancel;
+@end
+
 /**
  RLMResults is an auto-updating container type in Realm returned from object
  queries.
@@ -162,6 +166,39 @@ RLM_ASSUME_NONNULL_BEGIN
  @return    An RLMResults sorted by the specified properties.
  */
 - (RLMResults RLM_GENERIC_RETURN*)sortedResultsUsingDescriptors:(NSArray *)properties;
+
+#pragma mark -
+
+
+/**---------------------------------------------------------------------------------------
+ *  @name Delivery
+ *  ---------------------------------------------------------------------------------------
+ */
+
+/**
+ Asynchronously run this query and then pass the result to the block on the given dispatch queue.
+
+ Thw block will be called again with updated results each time a write
+ transaction is committed. To unsubscribe from receiving updates, call `-cancel`
+ on the returned cancellation token.
+
+ If an error occurs the block will be called with `nil` for the results
+ parameter and a non-`nil` error.
+
+ If the destination queue is the main queue, then the results passed to the
+ block can safely be stored and used from the main thread. For any other queue,
+ stored references to the results are unlikely to be usable after returning from
+ the block.
+
+ @warning This method cannot be called during a write transaction, or when the
+          containing realm is read-only.
+
+ @param queue The dispatch queue onto which the results should be delivered.
+ @param block The block to be called on the given `queue` with the queue-local copy of the results.
+ */
+- (RLMCancellationToken *)deliverOn:(dispatch_queue_t)queue
+                              block:(void (^)(RLMResults RLM_GENERIC_RETURN * __nullable, NSError * __nullable))block;
+- (RLMCancellationToken *)deliverOnMainThread:(void (^)(RLMResults RLM_GENERIC_RETURN * __nullable, NSError * __nullable))block;
 
 #pragma mark -
 

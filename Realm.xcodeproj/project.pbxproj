@@ -273,6 +273,15 @@
 		3F6369AE1BDAB3F8007F12D8 /* realm_coordinator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F6369A81BDAB3F8007F12D8 /* realm_coordinator.hpp */; };
 		3F6369AF1BDAB3F8007F12D8 /* realm_coordinator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F6369A81BDAB3F8007F12D8 /* realm_coordinator.hpp */; };
 		3F6369B01BDAB3F8007F12D8 /* realm_coordinator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F6369A81BDAB3F8007F12D8 /* realm_coordinator.hpp */; };
+		3F7556591BE2CC570058BC7E /* AsyncTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 3F7556581BE2CC570058BC7E /* AsyncTests.m */; };
+		3F75565C1BE418900058BC7E /* async_query.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3F75565A1BE418900058BC7E /* async_query.cpp */; };
+		3F75565D1BE418900058BC7E /* async_query.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3F75565A1BE418900058BC7E /* async_query.cpp */; };
+		3F75565E1BE418900058BC7E /* async_query.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3F75565A1BE418900058BC7E /* async_query.cpp */; };
+		3F75565F1BE418900058BC7E /* async_query.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3F75565A1BE418900058BC7E /* async_query.cpp */; };
+		3F7556601BE418900058BC7E /* async_query.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F75565B1BE418900058BC7E /* async_query.hpp */; };
+		3F7556611BE418900058BC7E /* async_query.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F75565B1BE418900058BC7E /* async_query.hpp */; };
+		3F7556621BE418900058BC7E /* async_query.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F75565B1BE418900058BC7E /* async_query.hpp */; };
+		3F7556631BE418900058BC7E /* async_query.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3F75565B1BE418900058BC7E /* async_query.hpp */; };
 		3F8DCA6219930F8E0008BD7F /* RLMPredicateUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = E8A543AE195C9C9E00990A20 /* RLMPredicateUtil.m */; };
 		3F8DCA6319930F8E0008BD7F /* RLMTestCase.m in Sources */ = {isa = PBXBuildFile; fileRef = E81A1FC51955FE0100FDED82 /* RLMTestCase.m */; };
 		3F8DCA6419930F8E0008BD7F /* ArrayPropertyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E81A1FB81955FE0100FDED82 /* ArrayPropertyTests.m */; };
@@ -697,6 +706,9 @@
 		3F6369A81BDAB3F8007F12D8 /* realm_coordinator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = realm_coordinator.hpp; path = ObjectStore/impl/realm_coordinator.hpp; sourceTree = "<group>"; };
 		3F68BFCD1B558CA800D50FBD /* RLMPrefix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RLMPrefix.h; sourceTree = "<group>"; };
 		3F6B89AE19EF40BA004E8EA8 /* librealm-ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "librealm-ios.a"; path = "../core/librealm-ios.a"; sourceTree = "<group>"; };
+		3F7556581BE2CC570058BC7E /* AsyncTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AsyncTests.m; sourceTree = "<group>"; };
+		3F75565A1BE418900058BC7E /* async_query.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = async_query.cpp; path = ObjectStore/impl/async_query.cpp; sourceTree = "<group>"; };
+		3F75565B1BE418900058BC7E /* async_query.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = async_query.hpp; path = ObjectStore/impl/async_query.hpp; sourceTree = "<group>"; };
 		3F8DCA5719930F550008BD7F /* iOS Device Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "iOS Device Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3FAE25511B8CEBBE00D01405 /* object_store.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = object_store.cpp; path = ObjectStore/object_store.cpp; sourceTree = "<group>"; };
 		3FAE25521B8CEBBE00D01405 /* object_store.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = object_store.hpp; path = ObjectStore/object_store.hpp; sourceTree = "<group>"; };
@@ -897,6 +909,8 @@
 			isa = PBXGroup;
 			children = (
 				3F2118A71B97CBAD005A4CFE /* Apple */,
+				3F75565A1BE418900058BC7E /* async_query.cpp */,
+				3F75565B1BE418900058BC7E /* async_query.hpp */,
 				3F6369A71BDAB3F8007F12D8 /* realm_coordinator.cpp */,
 				3F6369A81BDAB3F8007F12D8 /* realm_coordinator.hpp */,
 				3F1F47891B97ABA300CD99A3 /* transact_log_handler.cpp */,
@@ -928,6 +942,7 @@
 			isa = PBXGroup;
 			children = (
 				E81A1FB81955FE0100FDED82 /* ArrayPropertyTests.m */,
+				3F7556581BE2CC570058BC7E /* AsyncTests.m */,
 				E81A1FBA1955FE0100FDED82 /* DynamicTests.m */,
 				021A882F1AAFB5BE00EEAC84 /* EncryptionTests.mm */,
 				E81A1FBB1955FE0100FDED82 /* EnumeratorTests.m */,
@@ -1114,6 +1129,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F7556631BE418900058BC7E /* async_query.hpp in Headers */,
 				3F2118B11B97CBE1005A4CFE /* external_commit_helper.hpp in Headers */,
 				3FBD06031B94E1C3004559CF /* index_set.hpp in Headers */,
 				3FAE257C1B8CEBBE00D01405 /* object_schema.hpp in Headers */,
@@ -1169,6 +1185,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F7556621BE418900058BC7E /* async_query.hpp in Headers */,
 				3F2118B01B97CBE1005A4CFE /* external_commit_helper.hpp in Headers */,
 				3FBD06021B94E1C3004559CF /* index_set.hpp in Headers */,
 				3FAE257B1B8CEBBE00D01405 /* object_schema.hpp in Headers */,
@@ -1224,6 +1241,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F7556611BE418900058BC7E /* async_query.hpp in Headers */,
 				3F2118AF1B97CBE1005A4CFE /* external_commit_helper.hpp in Headers */,
 				3FBD06011B94E1C3004559CF /* index_set.hpp in Headers */,
 				3FAE257A1B8CEBBE00D01405 /* object_schema.hpp in Headers */,
@@ -1279,6 +1297,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F7556601BE418900058BC7E /* async_query.hpp in Headers */,
 				3F2118AE1B97CBE1005A4CFE /* external_commit_helper.hpp in Headers */,
 				3FBD06001B94E1C3004559CF /* index_set.hpp in Headers */,
 				3FAE25791B8CEBBE00D01405 /* object_schema.hpp in Headers */,
@@ -1772,6 +1791,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F75565F1BE418900058BC7E /* async_query.cpp in Sources */,
 				3F2118AD1B97CBE1005A4CFE /* external_commit_helper.cpp in Sources */,
 				3FBD05FF1B94E1C3004559CF /* index_set.cpp in Sources */,
 				3FAE25741B8CEBBE00D01405 /* object_schema.cpp in Sources */,
@@ -1811,6 +1831,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F75565E1BE418900058BC7E /* async_query.cpp in Sources */,
 				3F2118AC1B97CBE1005A4CFE /* external_commit_helper.cpp in Sources */,
 				3FBD05FE1B94E1C3004559CF /* index_set.cpp in Sources */,
 				3FAE25731B8CEBBE00D01405 /* object_schema.cpp in Sources */,
@@ -1891,6 +1912,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F75565D1BE418900058BC7E /* async_query.cpp in Sources */,
 				3F2118AB1B97CBE1005A4CFE /* external_commit_helper.cpp in Sources */,
 				3FBD05FD1B94E1C3004559CF /* index_set.cpp in Sources */,
 				3FAE25721B8CEBBE00D01405 /* object_schema.cpp in Sources */,
@@ -1973,6 +1995,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F75565C1BE418900058BC7E /* async_query.cpp in Sources */,
 				3F2118AA1B97CBE1005A4CFE /* external_commit_helper.cpp in Sources */,
 				3FBD05FC1B94E1C3004559CF /* index_set.cpp in Sources */,
 				3FAE25711B8CEBBE00D01405 /* object_schema.cpp in Sources */,
@@ -2013,6 +2036,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E81A1FD51955FE0100FDED82 /* ArrayPropertyTests.m in Sources */,
+				3F7556591BE2CC570058BC7E /* AsyncTests.m in Sources */,
 				02E334C31A5F41C7009F8810 /* DynamicTests.m in Sources */,
 				021A88321AAFB5C800EEAC84 /* EncryptionTests.mm in Sources */,
 				E81A1FDB1955FE0100FDED82 /* EnumeratorTests.m in Sources */,

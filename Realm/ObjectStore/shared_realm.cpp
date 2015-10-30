@@ -305,12 +305,15 @@ void Realm::notify()
         }
         if (m_auto_refresh) {
             if (m_group) {
-                transaction::advance(*m_shared_group, *m_history, m_delegate.get());
+                m_coordinator->advance_to_ready(*this);
             }
             else if (m_delegate) {
                 m_delegate->did_change({}, {});
             }
         }
+    }
+    else {
+        m_coordinator->process_available_async(*this);
     }
 }
 

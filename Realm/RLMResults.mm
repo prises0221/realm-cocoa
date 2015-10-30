@@ -30,11 +30,29 @@
 #import "RLMUtil.hpp"
 
 #import "results.hpp"
+#import "external_commit_helper.hpp"
 
 #import <objc/runtime.h>
 #import <realm/table_view.hpp>
 
 using namespace realm;
+
+@implementation RLMCancellationToken {
+    realm::AsyncQueryCancelationToken _token;
+}
+- (instancetype)initWithToken:(realm::AsyncQueryCancelationToken)token {
+    self = [super init];
+    if (self) {
+        _token = std::move(token);
+    }
+    return self;
+}
+
+- (void)cancel {
+    _token = {};
+}
+
+@end
 
 static const int RLMEnumerationBufferSize = 16;
 
@@ -416,4 +434,36 @@ static inline void RLMResultsValidateInWriteTransaction(__unsafe_unretained RLMR
     return translateErrors([&] { return _results.get_query().find_all(); });
 }
 
+- (RLMCancellationToken *)deliverOn:(dispatch_queue_t)queue
+                              block:(void (^)(RLMResults *, NSError *))block {
+    NSString *objectClassName = _objectClassName;
+    RLMRealmConfiguration *config = _realm.configuration;
+    auto token = _results.asyncify(^(std::function<void()> fn) { dispatch_async(queue, ^{
+        @autoreleasepool {
+            fn();
+        }
+    }); }, ^(realm::Results r) {
+        @autoreleasepool {
+            RLMRealm *realm = [RLMRealm realmWithConfiguration:config error:nil];
+            block([RLMResults resultsWithObjectClassName:objectClassName
+                                                   realm:realm
+                                                 results:std::move(r)], nil);
+        }
+    });
+    return [[RLMCancellationToken alloc] initWithToken:std::move(token)];
+}
+
+- (RLMCancellationToken *)deliverOnMainThread:(void (^)(RLMResults *, NSError *))block {
+    NSString *objectClassName = _objectClassName;
+    RLMRealmConfiguration *config = _realm.configuration;
+    auto token = _results.asyncify([block, objectClassName, config](realm::Results r) {
+        @autoreleasepool {
+            RLMRealm *realm = [RLMRealm realmWithConfiguration:config error:nil];
+            block([RLMResults resultsWithObjectClassName:objectClassName
+                                                   realm:realm
+                                                 results:std::move(r)], nil);
+        }
+    });
+    return [[RLMCancellationToken alloc] initWithToken:std::move(token)];
+}
 @end

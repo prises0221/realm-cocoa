@@ -18,7 +18,17 @@
 
 #include "realm_coordinator.hpp"
 
+#include "async_query.hpp"
 #include "external_commit_helper.hpp"
+#include "transact_log_handler.hpp"
+
+#include <realm/commit_log.hpp>
+#include <realm/group_shared.hpp>
+#include <realm/lang_bind_helper.hpp>
+#include <realm/query.hpp>
+#include <realm/table_view.hpp>
+
+#include <cassert>
 
 using namespace realm;
 using namespace realm::_impl;
@@ -55,7 +65,7 @@ std::shared_ptr<Realm> RealmCoordinator::get_realm(Realm::Config config)
     std::lock_guard<std::mutex> lock(m_realm_mutex);
     if (!m_notifier) {
         m_config = config;
-        m_notifier = std::make_unique<ExternalCommitHelper>(config.path);
+        m_notifier = std::make_unique<ExternalCommitHelper>(config, *this);
     }
     else {
         if (m_config.read_only != config.read_only) {
@@ -74,8 +84,6 @@ std::shared_ptr<Realm> RealmCoordinator::get_realm(Realm::Config config)
         if (/* DISABLES CODE */ (false) && m_config.schema != config.schema) {
             throw MismatchedConfigException("Realm at path already opened with different schema");
         }
-        // FIXME: wat?
-        m_config.migration_function = config.migration_function;
     }
 
     auto thread_id = std::this_thread::get_id();
@@ -156,4 +164,170 @@ void RealmCoordinator::clear_cache()
 void RealmCoordinator::send_commit_notifications()
 {
     m_notifier->notify_others();
+}
+
+AsyncQueryCancelationToken RealmCoordinator::register_query(const Results& r, Dispatcher dispatcher, std::function<void (Results)> fn)
+{
+    return r.get_realm().m_coordinator->do_register_query(r, std::move(dispatcher), std::move(fn));
+}
+
+AsyncQueryCancelationToken RealmCoordinator::do_register_query(const Results& r, Dispatcher dispatcher, std::function<void (Results)> fn)
+{
+    if (m_config.read_only) {
+        throw "no async read only";
+    }
+
+    std::lock_guard<std::mutex> lock(m_query_mutex);
+
+    if (!m_query_sg) {
+        m_query_history = realm::make_client_history(m_config.path, m_config.encryption_key.data());
+        SharedGroup::DurabilityLevel durability = m_config.in_memory ? SharedGroup::durability_MemOnly : SharedGroup::durability_Full;
+        m_query_sg = std::make_unique<SharedGroup>(*m_query_history, durability, m_config.encryption_key.data());
+        m_query_sg->begin_read();
+
+        m_advancer_history = realm::make_client_history(m_config.path, m_config.encryption_key.data());
+        m_advancer_sg = std::make_unique<SharedGroup>(*m_advancer_history, durability, m_config.encryption_key.data());
+        m_advancer_sg->begin_read();
+    }
+
+    auto handover = r.get_realm().m_shared_group->export_for_handover(r.get_query(), ConstSourcePayload::Copy);
+    if (handover->version < m_advancer_sg->get_version_of_current_transaction()) {
+        // Ensure we're holding a readlock on the oldest version we have a
+        // handover object for, as handover objects don't
+        m_advancer_sg->end_read();
+        m_advancer_sg->begin_read(handover->version);
+    }
+    m_new_queries.push_back(std::make_shared<AsyncQuery>(r.get_sort(),
+                                                         std::move(handover),
+                                                         std::move(dispatcher),
+                                                         std::move(fn),
+                                                         *this));
+    m_notifier->notify_others();
+    return m_new_queries.back().get();
+}
+
+void RealmCoordinator::unregister_query(AsyncQuery& registration)
+{
+    registration.parent.do_unregister_query(registration);
+}
+
+void RealmCoordinator::do_unregister_query(AsyncQuery& registration)
+{
+    std::lock_guard<std::mutex> lock(m_query_mutex);
+    auto it = std::find_if(m_queries.begin(), m_queries.end(),
+                           [&](auto const& ptr) { return ptr.get() == &registration; });
+    if (it != m_queries.end()) {
+        std::iter_swap(--m_queries.end(), it);
+        m_queries.pop_back();
+    }
+}
+
+void RealmCoordinator::on_change()
+{
+    std::lock_guard<std::mutex> lock(m_query_mutex);
+
+    if (m_queries.empty() && m_new_queries.empty()) {
+        if (m_advancer_sg) {
+            m_advancer_sg->end_read();
+            m_advancer_sg->begin_read();
+            m_query_sg->end_read();
+            m_query_sg->begin_read();
+        }
+        return;
+    }
+
+    // Sort newly added queries by their source version, as we can't go backwards
+    std::sort(m_new_queries.begin(), m_new_queries.end(), [](auto const& lft, auto const& rgt) {
+        return lft->version() < rgt->version();
+    });
+
+    // Import all newly added queries to our helper SG
+    for (auto& query : m_new_queries) {
+        LangBindHelper::advance_read(*m_advancer_sg, *m_advancer_history, query->version());
+        query->attach_to(*m_advancer_sg);
+    }
+
+    // Advance both SGs to the newest version
+    LangBindHelper::advance_read(*m_advancer_sg, *m_advancer_history);
+    LangBindHelper::advance_read(*m_query_sg, *m_query_history, m_advancer_sg->get_version_of_current_transaction());
+
+    // Transfer all new queries over to the main SG
+    for (auto& query : m_new_queries) {
+        query->detatch();
+        query->attach_to(*m_query_sg);
+    }
+
+    // Move "new queries" to the main query list
+    m_queries.reserve(m_queries.size() + m_new_queries.size());
+    std::move(m_new_queries.begin(), m_new_queries.end(), std::back_inserter(m_queries));
+    m_new_queries.clear();
+
+    // Run each of the queries and send the updated results
+    for (auto& query : m_queries) {
+        if (!query->update()) {
+            continue;
+        }
+
+        if (query->get_mode() == AsyncQuery::Mode::Push) {
+            std::weak_ptr<AsyncQuery> q = query;
+            std::weak_ptr<RealmCoordinator> weak_self = shared_from_this();
+            query->dispatch([q, weak_self] {
+                auto self = weak_self.lock();
+                auto query = q.lock();
+                if (!query || !self) {
+                    return;
+                }
+
+                std::lock_guard<std::mutex> lock(self->m_query_mutex);
+                SharedRealm realm = Realm::get_shared_realm(self->m_config);
+                query->deliver(realm, *realm->m_shared_group);
+            });
+        }
+    }
+
+    m_advancer_sg->end_read();
+    m_advancer_sg->begin_read(m_query_sg->get_version_of_current_transaction());
+}
+
+static void process_available_async(Realm& realm, SharedGroup& sg, std::vector<std::shared_ptr<_impl::AsyncQuery>>& queries)
+{
+    // FIXME: avoid doing this under the lock by extracting the handover info
+    // in advance_to_ready(), so that the next commit's queries can be run
+    // at the same time as the user's blocks
+    // requires holding a strong (weak?) ref to the registration
+    for (auto& query : queries) {
+        if (query->get_mode() == AsyncQuery::Mode::Pull) {
+            query->deliver(realm.shared_from_this(), sg);
+        }
+    }
+}
+
+void RealmCoordinator::advance_to_ready(Realm& realm)
+{
+    std::lock_guard<std::mutex> lock(m_query_mutex);
+
+    SharedGroup::VersionID version;
+    for (auto& query : m_queries) {
+        if (query->get_mode() == AsyncQuery::Mode::Pull) {
+            version = query->version();
+            if (version != SharedGroup::VersionID()) {
+                break;
+            }
+        }
+    }
+
+    // no untargeted async queries; just advance to latest
+    if (version.version == 0) {
+        transaction::advance(*realm.m_shared_group, *realm.m_history, realm.m_delegate.get());
+    }
+    else if (version > realm.m_shared_group->get_version_of_current_transaction()) {
+        transaction::advance(*realm.m_shared_group, *realm.m_history, realm.m_delegate.get(), version);
+        ::process_available_async(realm, *realm.m_shared_group, m_queries);
+    }
+}
+
+void RealmCoordinator::process_available_async(Realm& realm)
+{
+    std::lock_guard<std::mutex> lock(m_query_mutex);
+    ::process_available_async(realm, *realm.m_shared_group, m_queries);
 }

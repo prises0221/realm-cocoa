@@ -20,16 +20,26 @@
 #define REALM_EXTERNAL_COMMIT_HELPER_HPP
 
 #include <CoreFoundation/CFRunLoop.h>
+#include <functional>
+#include <future>
 #include <mutex>
 #include <vector>
 
+#include "shared_realm.hpp"
+
 namespace realm {
 class Realm;
+class Results;
+class Query;
+class ClientHistory;
+class SharedGroup;
 
 namespace _impl {
+// FIXME: split IPC from the local cross-thread stuff
+// both are platform-specific but need to be useable separately
 class ExternalCommitHelper {
 public:
-    ExternalCommitHelper(std::string path);
+    ExternalCommitHelper(const Realm::Config& config, RealmCoordinator& parent);
     ~ExternalCommitHelper();
 
     void notify_others();
@@ -67,6 +77,8 @@ private:
 
     void listen();
 
+    RealmCoordinator& m_parent;
+
     // Currently registered realms and the signal for delivering notifications
     // to them
     std::vector<PerRealmInfo> m_realms;
@@ -75,7 +87,7 @@ private:
     std::mutex m_realms_mutex;
 
     // The listener thread
-    pthread_t m_thread;
+    std::future<void> m_thread;
 
     // Read-write file descriptor for the named pipe which is waited on for
     // changes and written to when a commit is made
